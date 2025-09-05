@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LEAKSNIFF - Confidential Content Detector</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    :root {
+      --primary: #1a1d21;
+      --secondary: #24292e;
+      --accent: #3a7fff;
+      --accent-hover: #2b5fc7;
+      --text: #f0f6fc;
+      --text-secondary: #8b949e;
+      --border: #30363d;
+      --card-bg: #161b22;
+      --success: #3fb950;
+      --warning: #d29922;
+      --danger: #f85149;
+      --shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--primary);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px 20px;
+      background-color: var(--secondary);
+      box-shadow: var(--shadow);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+      font-size: 22px;
+      position: absolute;
+      left: 20px;
+    }
+    .logo i {
+      color: var(--accent);
+      margin-right: 10px;
+    }
+    .url-container {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      max-width: 600px;
+      margin: 0 20px;
+    }
+    #urlInput {
+      flex: 1;
+      padding: 12px 16px;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px 0 0 6px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    #urlInput:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    #loadBtn {
+      padding: 12px 20px;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0 6px 6px 0;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s;
+      white-space: nowrap;
+    }
+    #loadBtn:hover {
+      background-color: var(--accent-hover);
+    }
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    .left {
+      width: 70%;
+      position: relative;
+      border-right: 1px solid var(--border);
+    }
+    .right {
+      width: 30%;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      background-color: var(--secondary);
+      overflow-y: auto;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: none;
+    }
+    .upload-section {
+      margin-bottom: 25px;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+    }
+    .section-title i {
+      margin-right: 10px;
+      color: var(--accent);
+    }
+    .upload-area {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 25px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.3s;
+      background-color: var(--card-bg);
+    }
+    .upload-area:hover {
+      border-color: var(--accent);
+    }
+    .upload-icon {
+      font-size: 40px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .upload-text {
+      color: var(--text-secondary);
+      margin-bottom: 15px;
+    }
+    .upload-btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+    .upload-btn:hover {
+      background-color: var(--accent-hover);
+    }
+    .preview-section {
+      margin-bottom: 25px;
+    }
+    #screenshot {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: none;
+    }
+    .button-wrapper {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    #checkBtn {
+      padding: 8px 16px;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #checkBtn:hover {
+      background-color: var(--accent-hover);
+    }
+    #checkBtn i {
+      margin-right: 10px;
+    }
+    #ocrBtn {
+      padding: 8px 16px;
+      background-color: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background-color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #ocrBtn:hover {
+      background-color: var(--accent-hover);
+    }
+    #ocrBtn i {
+      margin-right: 10px;
+    }
+    .results-section {
+      margin-top: 10px;
+    }
+    #loading {
+      display: none;
+      border: 4px solid var(--border);
+      border-top: 4px solid var(--accent);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 2s linear infinite;
+      margin: 10px auto;
+    }
+    #result {
+      padding: 15px;
+      border-radius: 6px;
+      text-align: center;
+      font-weight: 600;
+      display: none;
+      margin-top: 15px;
+    }
+    .result-safe {
+      background-color: rgba(63, 185, 80, 0.15);
+      color: var(--success);
+      border: 1px solid var(--success);
+    }
+    .result-warning {
+      background-color: rgba(210, 153, 34, 0.15);
+      color: var(--warning);
+      border: 1px solid var(--warning);
+    }
+    .result-danger {
+      background-color: rgba(248, 81, 73, 0.15);
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+    #confidentialFlag {
+      text-align: center;
+      font-weight: 600;
+      display: none;
+      margin-top: 10px;
+      color: var(--danger);
+    }
+    #introOverlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 28px;
+      opacity: 1;
+      transition: opacity 1.5s ease;
+      z-index: 10;
+      text-align: center;
+      padding: 30px;
+    }
+    #introOverlay div {
+      margin: 10px 0;
+    }
+    #introOverlay div:first-child {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--accent);
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @media (max-width: 1200px) {
+      .left {
+        width: 60%;
+      }
+      .right {
+        width: 40%;
+      }
+    }
+    @media (max-width: 900px) {
+      .main {
+        flex-direction: column;
+      }
+      .left, .right {
+        width: 100%;
+        height: 50%;
+      }
+      .header {
+        flex-direction: column;
+        padding: 15px;
+      }
+      .logo {
+        margin-bottom: 15px;
+      }
+      .url-container {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <i class="fas fa-shield-alt"></i>LEAKSNIFF
+    </div>
+    <div class="url-container">
+      <input type="text" id="urlInput" placeholder="Enter URL to load content" />
+      <button id="loadBtn">Load</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="left" id="feed">
+      <div id="introOverlay">
+        <div>LEAKSNIFF Professional</div>
+        <div>Confidential Content Detection Tool</div>
+      </div>
+      <iframe></iframe>
+    </div>
+    <div class="right">
+      <div class="upload-section">
+        <div class="section-title">
+          <i class="fas fa-file-upload"></i> Upload Image
+        </div>
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">
+            <i class="fas fa-cloud-upload-alt"></i>
+          </div>
+          <div class="upload-text">Drag & drop your image here or click to browse</div>
+          <div class="upload-btn">Select Image</div>
+          <input type="file" accept="image/*" id="uploadBtn" style="display:none" />
+        </div>
+      </div>
+      <div class="preview-section">
+        <div class="section-title">
+          <i class="fas fa-image"></i> Image Preview
+        </div>
+        <img id="screenshot" alt="Screenshot preview" />
+      </div>
+      <div class="button-wrapper">
+        <button id="ocrBtn" type="button">
+          <i class="fas fa-file-alt"></i> Upload for OCR
+        </button>
+        <button id="checkBtn" type="button">
+          <i class="fas fa-shield-alt"></i> Check Confidentiality
+        </button>
+      </div>
+      <div id="loading"></div>
+      <div id="ocrLabel" style="display:none; font-weight:600; color:#3a7fff; margin-top:15px; text-align:center;">THE EXTRACTED OCR IS</div>
+      <div id="result"></div>
+      <div id="confidentialFlag"></div>
+    </div>
+  </div>
+  <script>
+    const urlInput = document.getElementById("urlInput");
+    const loadBtn = document.getElementById("loadBtn");
+    const iframe = document.querySelector("iframe");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const uploadArea = document.getElementById("uploadArea");
+    const screenshotImg = document.getElementById("screenshot");
+    const checkBtn = document.getElementById("checkBtn");
+    const ocrBtn = document.getElementById("ocrBtn");
+    const loading = document.getElementById("loading");
+    const result = document.getElementById("result");
+    const introOverlay = document.getElementById("introOverlay");
+    iframe.style.display = "none";
+    window.addEventListener("load", () => {
+      setTimeout(() => {
+        introOverlay.style.opacity = "0";
+        setTimeout(() => {
+          introOverlay.style.display = "none";
+          iframe.style.display = "block";
+          iframe.src = "https://rss.app/embed/v1/wall/IeQg8kSsbGqBPSoy";
+        }, 1500);
+      }, 3000);
+    });
+    loadBtn.addEventListener("click", () => {
+      const url = urlInput.value;
+      if (url) {
+        const finalUrl = url.startsWith("http") ? url : `https://${url}`;
+        iframe.src = finalUrl;
+      }
+    });
+    uploadArea.addEventListener("click", () => {
+      uploadBtn.click();
+    });
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = "var(--accent)";
+      uploadArea.style.backgroundColor = "rgba(58, 127, 255, 0.1)";
+    });
+    uploadArea.addEventListener("dragleave", () => {
+      uploadArea.style.borderColor = "var(--border)";
+      uploadArea.style.backgroundColor = "var(--card-bg)";
+    });
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadArea.style.borderColor = "var(--border)";
+      uploadArea.style.backgroundColor = "var(--card-bg)";
+      if (e.dataTransfer.files.length) {
+        handleImageUpload(e.dataTransfer.files[0]);
+      }
+    });
+    uploadBtn.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        handleImageUpload(file);
+      }
+    });
+    checkBtn.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const file = uploadBtn.files[0];
+      if (!file) {
+        showResult("Please upload an image first", "warning");
+        return;
+      }
+      loading.style.display = "block";
+      result.style.display = "none";
+      checkBtn.disabled = true;
+      const formData = new FormData();
+      formData.append("image", file);
+      try {
+        const response = await fetch("http://localhost:5000/check_image", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await response.json();
+        if (data.hash_check && data.hash_check.leak_detected) {
+          const diff = data.hash_check.difference;
+          showResult(`Confidential Content Detected [X:${diff} | Y:${diff}]`, "danger");
+        } else {
+          showResult("HASH detected [X.axis.value != Xn.axis.value]", "warning");
+        }
+      } catch (error) {
+        showResult("Hash Detected [X dimension didn't match with current]", "warning");
+      } finally {
+        loading.style.display = "none";
+        checkBtn.disabled = false;
+      }
+    });
+    function handleImageUpload(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        screenshotImg.src = e.target.result;
+        screenshotImg.style.display = "block";
+        checkBtn.disabled = false;
+        document.querySelector(".upload-text").textContent = "Image ready for analysis";
+        document.querySelector(".upload-icon").innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i>';
+      };
+      reader.readAsDataURL(file);
+    }
+    function showResult(message, type) {
+      result.textContent = message;
+      result.className = "";
+      if (type === "safe") {
+        result.classList.add("result-safe");
+        result.style.display = "block";
+      } else if (type === "danger") {
+        result.classList.add("result-danger");
+        result.style.display = "block";
+      } else if (type === "warning") {
+        result.classList.add("result-warning");
+        result.style.display = "block";
+      }
+      document.getElementById("confidentialFlag").style.display = "none";
+    }
+
+    ocrBtn.addEventListener("click", async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const file = uploadBtn.files[0];
+      if (!file) {
+        showResult("Please upload an image first", "warning");
+        return;
+      }
+      let confidentialFlag = document.getElementById("confidentialFlag");
+      try {
+        const { data: { text } } = await Tesseract.recognize(file, "eng");
+        console.log("Extracted text:", text);
+        document.getElementById("ocrLabel").style.display = "block";
+        // Show extracted text in green box
+        showResult(text, "safe");
+        // Show loading animation after OCR result
+        confidentialFlag.innerHTML = '<div id="confidentialLoading" style="display:block; margin:10px auto; text-align:center;"><span style="display:inline-block; width:32px; height:32px; border:4px solid #f85149; border-top:4px solid #fff; border-radius:50%; animation: spin 1s linear infinite;"></span><br>Checking for Confidentiality...</div>';
+        confidentialFlag.style.display = "block";
+        // Check similarity with backend
+        const response = await fetch("http://localhost:5000/check_confidential_text", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ui_text: text })
+        });
+        const data = await response.json();
+        // Remove loading animation
+        if (document.getElementById("confidentialLoading")) {
+          document.getElementById("confidentialLoading").remove();
+        }
+        if (data.confidential) {
+          confidentialFlag.textContent = `Confidential (Similarity: ${data.similarity_score}%)`;
+          confidentialFlag.style.display = "block";
+          confidentialFlag.style.color = "#f85149";
+        } else {
+          confidentialFlag.textContent = `Not Confidential (Similarity: ${data.similarity_score}%)`;
+          confidentialFlag.style.display = "block";
+          confidentialFlag.style.color = "#3fb950";
+        }
+
+      } catch (error) {
+        console.error("OCR or similarity check error:", error);
+        document.getElementById("ocrLabel").style.display = "block";
+        // Show error in red, but keep extracted text in green
+        showResult("Error performing OCR or similarity check", "danger");
+        confidentialFlag.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
